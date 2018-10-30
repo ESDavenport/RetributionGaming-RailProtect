@@ -36,7 +36,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
     private double costPerRail = config.getDouble("costPerRail");
     private String currency = config.getString("currency");
     private List<Integer> blockList;
-    private Plugin plugin = this;
+    private RGRP plugin = this;
     private Database railsDB;
 
     @Override
