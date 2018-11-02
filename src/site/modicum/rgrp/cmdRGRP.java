@@ -4,6 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 
 public class cmdRGRP implements CommandExecutor {
@@ -16,7 +17,7 @@ public class cmdRGRP implements CommandExecutor {
         if (args.length != 1 || !(sender instanceof Player) || !sender.hasPermission("rgbf.admin")) { return false; }
 
         Player player = (Player) sender;
-        int blockID = player.getItemInHand().getTypeId();
+        int itemInHand = player.getItemInHand().getTypeId();
         char arg = args[0].toLowerCase().charAt(0);
 
         switch (arg) {
@@ -24,35 +25,47 @@ public class cmdRGRP implements CommandExecutor {
             default: return false;
 
             case 'a':
-                if (plugin.addToBlockList(blockID)) {
+                if (plugin.addToBlockList(itemInHand)) {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§2 added");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§2 added");
                     player.sendMessage("§e       - Config list updated.");
                 } else {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§2 is already registered §fon the list.");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§2 is already registered §fon the list.");
                 }
                 break;
 
             case 'r':
-                if (plugin.removeFromBlockList(blockID)) {
+                if (plugin.removeFromBlockList(itemInHand)) {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§4 removed");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 removed");
                     player.sendMessage("§e       - Config list updated.");
                 } else {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§4 is *NOT* registered §fon the list.");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 is *NOT* registered §fon the list.");
                 }
                 break;
 
             case 'c':
-                if (plugin.isProtectedBlock(blockID)) {
+                if (plugin.isProtectedBlock(itemInHand)) {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§2 is registered §fon the list.");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§2 is registered §fon the list.");
                 } else {
                     player.sendMessage("");
-                    player.sendMessage("§a[RGBF] §fBlockID: §3" + blockID + "§4 is *NOT* registered §fon the list.");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 is *NOT* registered §fon the list.");
                 }
+                break;
+
+            case 'w':
+                player.getInventory().addItem(new ItemStack(plugin.getWand()));
+                player.sendMessage("");
+                player.sendMessage("§a[RGRP] §fRailProtection Wand §2 added");
+                break;
+
+            case 's':
+                if (itemInHand != plugin.getWand()){plugin.setWand(itemInHand);}
+                player.sendMessage("");
+                player.sendMessage("§a[RGRP] §fRailProtection Wand §2 set: " + itemInHand);
                 break;
         }
 

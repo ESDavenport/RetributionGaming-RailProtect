@@ -1,11 +1,11 @@
 package site.modicum.rgrp;
 
-/*
+/**
 
 AUTHOR: IGGYSAUR
 DATE: 26/10/2018
 FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
-VERSION 1.1
+VERSION 1.2
 
  */
 
@@ -22,6 +22,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -31,7 +32,6 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
     private double costPerRail = getConfig().getDouble("costPerRail");
     private String currency = getConfig().getString("currency");
-    private SQLiteLib sqlLib;
     private List<Integer> blockList;
     private Database railsDB;
 
@@ -40,79 +40,74 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
     @Override
     public void onEnable()
     {
+        //singleton instance reference
         INSTANCE = this;
-        sqlLib = SQLiteLib.hookSQLiteLib(INSTANCE);
-        sqlLib.initializeDatabase("protectedRails", "CREATE TABLE IF NOT EXISTS rails(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, rail BLOB, block BLOB, town BLOB, player BLOB)");
-        railsDB = sqlLib.getDatabase("protectedRails");
-
+        //register commands and events
         getCommand("rgrp").setExecutor(new cmdRGRP());
-
-
+        getServer().getPluginManager().registerEvents(INSTANCE, INSTANCE);
+        //initialize config
         getConfig().options().copyDefaults(true);
         saveDefaultConfig();
-        getServer().getPluginManager().registerEvents(INSTANCE, INSTANCE);
+        //initialize DB
+        SQLiteLib sqlLib = SQLiteLib.hookSQLiteLib(INSTANCE);
+        sqlLib.initializeDatabase("protectedRails", "CREATE TABLE IF NOT EXISTS rails(id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, rail BLOB, block BLOB, town BLOB, player BLOB)");
+        railsDB = sqlLib.getDatabase("protectedRails");
     }
 
     @EventHandler
-    private void onClickWithRail(PlayerInteractEvent event)
+    private void onPlayerRightClick(PlayerInteractEvent event)
     {
         if (event.getAction().equals(Action.LEFT_CLICK_AIR)
                 || event.getAction().equals(Action.LEFT_CLICK_BLOCK)
-                || !event.hasBlock()
-                || !event.hasItem())
+                || !event.hasBlock())
         {return;}
-        Block block = event.getClickedBlock();
-        int itemInHand = event.getItem().getTypeId();
 
-        if(isProtectedBlock(itemInHand)) // if item in hand is on protections list
+        int itemInHand = event.getItem().getTypeId();
+        Block block = event.getClickedBlock();
+
+        if(TownyUniverse.isWilderness(block)) // if clicked block is in wilderness
         {
+            //if block is right clicked and hand is empty and clicked block is on protections list
+            if(event.getAction() == Action.RIGHT_CLICK_BLOCK && !event.hasItem() && isProtectedBlock(block.getTypeId())){
+                informPlayerOfOwnership(event.getPlayer(), block.getLocation());
+                return;
+            }
+
             try
             {
                 Resident res = TownyUniverse.getDataSource().getResident(event.getPlayer().getName());
 
-                if (TownyUniverse.isWilderness(block)) //if location of rail placement isn't owned by a town then check
+                if (res.hasTown())
                 {
-                    if (res.hasTown()) // if player who placed rail has a town
+
+                    Town town = res.getTown();
+
+                    if (isWand(itemInHand) && isProtectedBlock(block.getTypeId())) //if clicked block is on protections list and wand is in the hand
                     {
-                        Town town = res.getTown();
-                        Location rLoc = block.getRelative(BlockFace.UP).getLocation();
-                        Location loc = block.getLocation();
-                        boolean isRank = (res.hasTownRank("assistant") || res.hasTownRank("helper") || res.isMayor());
+                        Location rLoc = block.getLocation(); //rail location is block clicked with wand
+                        Location loc = block.getRelative(BlockFace.DOWN).getLocation(); //block under rail
 
-                        if (isRank && town.canPayFromHoldings(costPerRail)) // if the town can afford to pay x land deeds per rail and player has rank
-                        {
-                            //pay x deeds from towny bank to place rail
-                            town.pay(costPerRail, "Rail placed in unclaimed territory for " + costPerRail + " " + currency + " by " + res.getName());
-                            event.getPlayer().sendMessage("");
-                            event.getPlayer().sendMessage("§a[RGRP] §fBought a rail for §6" + town.getName() + " §fat a cost of §e" + (int) costPerRail + " " + currency);
-                            event.getPlayer().sendMessage("");
-                            event.getPlayer().sendMessage("§a[RGRP] §6" + town.getName() + "§f's balance§3: §e" + (int) (town.getHoldingBalance()) + " " + currency);
+                        // if claimRail is false, cancel event
+                        event.setCancelled(!claimRail(event.getPlayer(), town, rLoc, loc));
+                    }
+                    else if (isProtectedBlock(itemInHand)) //if player is attempting to place block with blockID on protections list
+                    {
+                        Location rLoc = block.getRelative(BlockFace.UP).getLocation(); //rail is placed above the block clicked with rail
+                        Location loc = block.getLocation(); //the block under the rail is the clicked block
 
-                            addRailsToDatabase(rLoc, loc, town, event.getPlayer());
-                        }
-                        else
-                        {
-                            event.setCancelled(true); // if player is not inside of (does not have a town) or player is part of a town but player isn't mayor or assistant, cancel event.
-
-                            if (!isRank)
-                            {
-                                event.getPlayer().sendMessage("");
-                                event.getPlayer().sendMessage("§a[RGRP] §fOnly §eTown Mayors§f, §eHelpers§f, and §eAssistants");
-                                event.getPlayer().sendMessage("         §fcan place rails in the wilderness.");
-                            }
-                            else if (!town.canPayFromHoldings(costPerRail))
-                            {
-                                event.getPlayer().sendMessage(" ");
-                                event.getPlayer().sendMessage("§a[RGRP] §fEach rail costs the town §e" + (int) costPerRail + " " + currency);
-                            }
-                        }
+                        // if claimRail is false, cancel event
+                        event.setCancelled(!claimRail(event.getPlayer(), town, rLoc, loc));
                     }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    @EventHandler
+    public void sayNoToFluidsAndDragonEggs(BlockFromToEvent event){
+        event.setCancelled(isProtectedBlock(event.getToBlock().getTypeId()));
     }
 
     @EventHandler
@@ -198,6 +193,66 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         List<Object> rResults = railsDB.queryRow("SELECT * FROM rails WHERE town = '" + town.getName() + "';", "rail");
         List<Object> bResults = railsDB.queryRow("SELECT * FROM rails WHERE town = '" + town.getName() + "';", "block");
         return rResults.contains(location.toString()) || bResults.contains(location.toString());
+    }
+
+    private void informPlayerOfOwnership(Player player, Location location){
+
+        String townName = "unowned";
+        if(isOwned(location))
+        {
+             townName = (String) railsDB.queryValue("SELECT * FROM rails WHERE rail = '" + location + "' OR block = '" + location + "';", "town");
+        }
+        player.sendMessage("§a[RGRP] §fRail owned by: §6" + townName);
+    }
+
+    private boolean isWand(int itemInHand)
+    {
+        return (itemInHand == getWand());
+    }
+
+    protected void setWand(int itemInHand)
+    {
+        getConfig().set("wand", itemInHand);
+        saveConfig();
+    }
+
+    protected int getWand(){
+        return getConfig().getInt("wand");
+    }
+
+    private boolean claimRail(Player player, Town town, Location rLoc, Location loc) throws Exception
+    {
+
+        Resident res = TownyUniverse.getDataSource().getResident(player.getName());
+        boolean isRank = (res.hasTownRank("assistant") || res.hasTownRank("helper") || res.isMayor());
+
+        if (isRank && town.canPayFromHoldings(costPerRail)) // if the town can afford to pay x land deeds per rail and player has rank
+        {
+            //pay x deeds from towny bank to place rail
+            town.pay(costPerRail, "Rail purchased in unclaimed territory for " + costPerRail + " " + currency + " by " + res.getName());
+            player.sendMessage("");
+            player.sendMessage("§a[RGRP] §fBought a rail for §6" + town.getName() + " §fat a cost of §e" + (int) costPerRail + " " + currency);
+            player.sendMessage("");
+            player.sendMessage("§a[RGRP] §6" + town.getName() + "§f's balance§3: §e" + (int) (town.getHoldingBalance()) + " " + currency);
+
+            addRailsToDatabase(rLoc, loc, town, player);
+            return true;        // if rails successfully added to DB, return true
+        }
+        else
+        {
+            if (!isRank)
+            {
+                player.sendMessage("");
+                player.sendMessage("§a[RGRP] §fOnly §eTown Mayors§f, §eHelpers§f, and §eAssistants");
+                player.sendMessage("         §fcan claim rails in the wilderness.");
+            }
+            if (!town.canPayFromHoldings(costPerRail))
+            {
+                player.sendMessage(" ");
+                player.sendMessage("§a[RGRP] §fEach rail costs the town §e" + (int) costPerRail + " " + currency);
+            }
+            return false;       // if rails were not added to DB, return false
+        }
     }
 
     private void addRailsToDatabase(Location rLoc, Location loc, Town town, Player pl)
