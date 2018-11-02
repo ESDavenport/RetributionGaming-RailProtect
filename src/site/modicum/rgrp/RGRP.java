@@ -5,7 +5,7 @@ package site.modicum.rgrp;
 AUTHOR: IGGYSAUR
 DATE: 26/10/2018
 FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
-VERSION 1.2
+VERSION 1.4
 
  */
 
@@ -207,6 +207,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         {
              townName = (String) railsDB.queryValue("SELECT * FROM rails WHERE rail = '" + location + "' OR block = '" + location + "';", "town");
         }
+        player.sendMessage("");
         player.sendMessage("§a[RGRP] §fRail owned by: §6" + townName);
     }
 
