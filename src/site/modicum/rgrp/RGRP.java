@@ -55,11 +55,12 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
     }
 
     @EventHandler
-    private void onPlayerRightClick(PlayerInteractEvent event)
+    private void onClickWithWandOrRail(PlayerInteractEvent event)
     {
         if (event.getAction().equals(Action.LEFT_CLICK_AIR)
                 || event.getAction().equals(Action.LEFT_CLICK_BLOCK)
-                || !event.hasBlock())
+                || !event.hasBlock()
+                || !event.hasItem())
         {return;}
 
         int itemInHand = event.getItem().getTypeId();
@@ -67,12 +68,6 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
         if(TownyUniverse.isWilderness(block)) // if clicked block is in wilderness
         {
-            //if block is right clicked and hand is empty and clicked block is on protections list
-            if(event.getAction() == Action.RIGHT_CLICK_BLOCK && !event.hasItem() && isProtectedBlock(block.getTypeId())){
-                informPlayerOfOwnership(event.getPlayer(), block.getLocation());
-                return;
-            }
-
             try
             {
                 Resident res = TownyUniverse.getDataSource().getResident(event.getPlayer().getName());
@@ -101,6 +96,16 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    @EventHandler
+    public void tellMeWhoOwnsThis(PlayerInteractEvent event)
+    {
+        if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.hasBlock() && !event.hasItem()) {
+            if (isOwned(event.getClickedBlock().getLocation())) {
+                informPlayerOfOwnership(event.getPlayer(), event.getClickedBlock().getLocation());
             }
         }
     }
@@ -197,7 +202,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
     private void informPlayerOfOwnership(Player player, Location location){
 
-        String townName = "unowned";
+        String townName = "nobody";
         if(isOwned(location))
         {
              townName = (String) railsDB.queryValue("SELECT * FROM rails WHERE rail = '" + location + "' OR block = '" + location + "';", "town");
