@@ -56,7 +56,7 @@ public class cmdRGRP implements CommandExecutor {
                 }
                 break;
 
-            case 'w':
+            case 'g':
                 player.getInventory().addItem(new ItemStack(plugin.getWand()));
                 player.sendMessage("");
                 player.sendMessage("§a[RGRP] §fRailProtection Wand §2 added");

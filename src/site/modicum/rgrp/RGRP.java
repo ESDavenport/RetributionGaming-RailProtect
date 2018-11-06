@@ -5,7 +5,7 @@ package site.modicum.rgrp;
 AUTHOR: IGGYSAUR
 DATE: 26/10/2018
 FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
-VERSION 1.4
+VERSION 1.5
 
  */
 
@@ -77,7 +77,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
                     Town town = res.getTown();
 
-                    if (isWand(itemInHand) && isProtectedBlock(block.getTypeId())) //if clicked block is on protections list and wand is in the hand
+                    if (isWand(itemInHand) && isProtectedBlock(block.getTypeId()) && !isOwned(block.getLocation())) //if clicked block is on protections list and wand is in the hand
                     {
                         Location rLoc = block.getLocation(); //rail location is block clicked with wand
                         Location loc = block.getRelative(BlockFace.DOWN).getLocation(); //block under rail
