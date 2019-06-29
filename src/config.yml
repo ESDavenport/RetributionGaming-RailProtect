@@ -5,3 +5,5 @@ currency: Land Deeds
 wand:
 
 blockIDtoProtect:
+
+multiblockIDs:

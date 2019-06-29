@@ -35,12 +35,29 @@ public class cmdRGRP implements CommandExecutor {
                 }
                 break;
 
+            case 'm':
+                if (plugin.addToMultiList(itemInHand)) {
+                    player.sendMessage("");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§2 added to multi list");
+                    player.sendMessage("§e       - Config list updated.");
+                } else {
+                    player.sendMessage("");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§2 is already registered §fon the multi list.");
+                }
+                break;
+
             case 'r':
                 if (plugin.removeFromBlockList(itemInHand)) {
                     player.sendMessage("");
                     player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 removed");
                     player.sendMessage("§e       - Config list updated.");
-                } else {
+                }
+                else if (plugin.removeFromMultiList(itemInHand)) {
+                    player.sendMessage("");
+                    player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 removed from the multi list");
+                    player.sendMessage("§e       - Config list updated.");
+                }
+                else {
                     player.sendMessage("");
                     player.sendMessage("§a[RGRP] §fBlockID: §3" + itemInHand + "§4 is *NOT* registered §fon the list.");
                 }

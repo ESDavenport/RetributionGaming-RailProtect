@@ -8,7 +8,7 @@ FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
 VERSION 1.5
 
  */
-
+import
 import com.pablo67340.SQLiteLib.Database.Database;
 import com.pablo67340.SQLiteLib.Main.SQLiteLib;
 import com.palmergames.bukkit.towny.event.DeleteTownEvent;
@@ -26,6 +26,7 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
@@ -64,9 +65,9 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         {return;}
 
         int itemInHand = event.getItem().getTypeId();
-        Block block = event.getClickedBlock();
+        Block clickedBlock = event.getClickedBlock();
 
-        if(TownyUniverse.isWilderness(block)) // if clicked block is in wilderness
+        if(TownyUniverse.isWilderness(clickedBlock)) // if clicked block is in wilderness
         {
             try
             {
@@ -77,21 +78,52 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
                     Town town = res.getTown();
 
-                    if (isWand(itemInHand) && isProtectedBlock(block.getTypeId()) && !isOwned(block.getLocation())) //if clicked block is on protections list and wand is in the hand
+                    if (isWand(itemInHand) && isProtectedBlock(clickedBlock.getTypeId())) //if clicked block is on protections list and wand is in the hand
                     {
-                        Location rLoc = block.getLocation(); //rail location is block clicked with wand
-                        Location loc = block.getRelative(BlockFace.DOWN).getLocation(); //block under rail
+                        Location rLoc = clickedBlock.getLocation(); //rail location is block clicked with wand
+                        Location loc = clickedBlock.getRelative(BlockFace.DOWN).getLocation(); //block under rail
 
                         // if claimRail is false, cancel event
                         event.setCancelled(!claimRail(event.getPlayer(), town, rLoc, loc));
                     }
                     else if (isProtectedBlock(itemInHand)) //if player is attempting to place block with blockID on protections list
                     {
-                        Location rLoc = block.getRelative(BlockFace.UP).getLocation(); //rail is placed above the block clicked with rail
-                        Location loc = block.getLocation(); //the block under the rail is the clicked block
+                        Location rLoc = clickedBlock.getRelative(BlockFace.UP).getLocation(); //rail is placed above the block clicked with rail
+                        Location loc = clickedBlock.getLocation(); //the block under the rail is the clicked block
 
                         // if claimRail is false, cancel event
                         event.setCancelled(!claimRail(event.getPlayer(), town, rLoc, loc));
+                    }
+                    else if (isProtectedMulti(itemInHand)) //if player is attempting to place block with blockID on multiblock protections list
+                    {
+                        List<Location> toClaim = new ArrayList<>();
+                        Location rLoc = clickedBlock.getRelative(BlockFace.UP).getLocation();
+
+                        for (int x = 0; x < 7; x++) {
+                            for (int y = 0; y < 3; y++) {
+                                for (int z = 0; z < 7; z++) {
+
+                                    Location railScan = rLoc.add(x,y,z);
+
+                                    if (isProtectedMulti(railScan.getBlock().getTypeId()))
+                                    {
+                                        toClaim.add(railScan);
+                                    }
+                                }
+                            }
+                        }
+
+                        boolean isRank = (res.hasTownRank("assistant") || res.hasTownRank("helper") || res.isMayor());
+                        double multiCost = toClaim.size() * costPerRail;
+
+                        if (isRank && town.canPayFromHoldings(multiCost))
+                        {
+                            for (Location rail : toClaim)
+                            {
+                                Location loc = rail.getBlock().getRelative(BlockFace.DOWN).getLocation();
+                                event.setCancelled(!claimRail(event.getPlayer(), town, rail, loc));
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -100,6 +132,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         }
     }
 
+    //identifying ownership with empty hand right click
     @EventHandler
     public void tellMeWhoOwnsThis(PlayerInteractEvent event)
     {
@@ -110,6 +143,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         }
     }
 
+    //says no to fluids and dragon eggs
     @EventHandler
     public void sayNoToFluidsAndDragonEggs(BlockFromToEvent event){
         event.setCancelled(isProtectedBlock(event.getToBlock().getTypeId()));
@@ -164,6 +198,16 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         return getConfig().getIntegerList("blockIDtoProtect").contains(itemInHand);
     }
 
+    protected boolean isProtectedMulti(int itemInHand)
+    {
+        return getConfig().getIntegerList("multiblockIDs").contains(itemInHand);
+    }
+
+    protected boolean isProtected(int itemInHand)
+    {
+        return (isProtectedBlock(itemInHand)) || isProtectedMulti(itemInHand))
+    }
+
     protected boolean addToBlockList(int blockID)
     {
         if(!isProtectedBlock(blockID)){
@@ -172,6 +216,17 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
         getConfig().set("blockIDtoProtect", blockList);
         saveConfig();
         return true;
+        }else return false;
+    }
+
+    protected boolean addToMultiList(int blockID)
+    {
+        if(!isProtectedMulti(blockID)){
+            blockList = getConfig().getIntegerList("multiblockIDs");
+            blockList.add(blockID);
+            getConfig().set("multiblockIDs", blockList);
+            saveConfig();
+            return true;
         }else return false;
     }
 
@@ -185,6 +240,18 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
             return true;
         }else return false;
     }
+
+    protected boolean removeFromMultiList(int blockID)
+    {
+        if(isProtectedMulti(blockID)){
+            blockList = getConfig().getIntegerList("multiblockIDs");
+            blockList.remove(new Integer((blockID)));
+            getConfig().set("multiblockIDs", blockList);
+            saveConfig();
+            return true;
+        }else return false;
+    }
+
 
     private boolean isOwned(Location location)
     {
