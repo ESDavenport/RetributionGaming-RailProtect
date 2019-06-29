@@ -1,5 +1,5 @@
 name: RGRP
-version: 1.5
+version: 1.6
 author: Iggysaur
 main: site.modicum.rgrp.RGRP
 api-version: 1.7.10
@@ -10,7 +10,7 @@ website: modicum.site
 commands:
   rgrp:
     aliases: railprotect
-    usage: /<command> [add|remove|check|getwand|setwand]
+    usage: /<command> [add|multi|remove|check|getwand|setwand]
     description: Retribution Gaming RailProtect
     permission: rgrp.admin
     permission-message: You do not have permission!
