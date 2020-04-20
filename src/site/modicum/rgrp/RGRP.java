@@ -5,7 +5,7 @@ package site.modicum.rgrp;
 AUTHOR: IGGYSAUR
 DATE: 26/10/2018
 FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
-VERSION 1.6
+VERSION 1.7
 
  */
 import com.pablo67340.SQLiteLib.Database.Database;
@@ -329,8 +329,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
     private void addRailsToDatabase(Location rLoc, Location loc, Town town, Player pl)
     {
-        String statement = "INSERT INTO `rails`(`rail`,`block`,`town`,'player') VALUES ('" + rLoc + "','" + loc + "','" + town + "','" + pl.getUniqueId() +"');";
-        railsDB.executeStatement(statement);
+        railsDB.executeStatement("INSERT INTO `rails`(`rail`,`block`,`town`,'player') VALUES ('" + rLoc + "','" + loc + "','" + town + "','" + pl.getUniqueId() +"');");
     }
 
     private void removeRailsFromDatabase(Location rLoc)
