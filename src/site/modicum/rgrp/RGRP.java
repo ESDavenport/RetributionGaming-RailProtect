@@ -8,7 +8,6 @@ FOR: RETRIBUTION GAMING - WILD WEST FRONTIER
 VERSION 1.6
 
  */
-import
 import com.pablo67340.SQLiteLib.Database.Database;
 import com.pablo67340.SQLiteLib.Main.SQLiteLib;
 import com.palmergames.bukkit.towny.event.DeleteTownEvent;
@@ -205,7 +204,7 @@ public class RGRP extends JavaPlugin implements Listener, CommandExecutor {
 
     protected boolean isProtected(int itemInHand)
     {
-        return (isProtectedBlock(itemInHand)) || isProtectedMulti(itemInHand))
+        return (isProtectedBlock(itemInHand) || isProtectedMulti(itemInHand));
     }
 
     protected boolean addToBlockList(int blockID)
